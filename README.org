@@ -22,7 +22,7 @@ file called "hello":
 #+end_src
 main program:
 #+begin_src brainfuck
-  +[>>++++++++++[>++++++++++<-]>[>+>+>+>+>+<<<<<-]>$[-]++++++++++.[-]<<<<]
+  +[>>++++++++++[>++++++++++<-]>[>+>+>+>+>+<<<<<-]>++++>+>++++++++>++++++++>+++++++++++<<<<$[-]++++++++++.[-]<<<<]
 #+end_src
 
 In this example, the main program invokes the script from the file named "hello" (essentially a "Hello World!"-printing program from [[https://en.wikipedia.org/wiki/Brainfuck#Hello_World!][Wikipedia]]), outputs a newline and loops. While not immediately useful (unless you want to clutter your terminal), it shows the point -- you can now modularize your programs and invoke the code from other files, sharing the memory between them.
