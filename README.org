@@ -50,16 +50,21 @@ Now to syscalls.
 *** Syscalls
 **** exit (code 0)
 ***** Action
-Stops executing current Brainfuck process. Returns to the parent process. If there's no parent process, shuts BFOSIX system down. Leaves memory contents intact.
+Stops executing current Brainfuck process. Returns to the parent process. If there's no parent process, shuts BFOSIX system down.
 ***** Arguments
 #+begin_src 
 |0|  
 #+end_src
 No arguments except the code. Implementations are welcome to add ~errno~ and other UNIX-y ~exit~ niceties.
+***** Returns
+#+begin_src
+|0|
+#+end_src
+Nothing, leaves zero (syscall code) intact.
 **** read/recv (code 1)
 ***** Arguments
 #+begin_src 
-  |1|...filename|0|?start(0)|0|?end(255)|
+  |1|...filename|?start(0)|?end(255)|
 #+end_src
 ***** Action
 Reads bytes from ~start~ index to the ~end~ index from the file/socket and puts them in memory, starting from the cell pointer is at, thus rewriting the syscall code ~filename~ and other args. Behavior differs between the cases of file and socket:
@@ -67,10 +72,15 @@ Reads bytes from ~start~ index to the ~end~ index from the file/socket and puts 
 - If ~filename~ is a name of the socket-bound file, created by ~connect/accept~ syscall, listen on it and store the ~end~ to ~start~ message bytes to the memory.
 
 It is an undefined behavior if messages/files are more than 255 (or whatever cell size there is) bytes long. It is recommended that implementations go with the sane default of simply not reading beyond the cell limits, thus pretending that all the files are 256 bytes long at most.
+***** Returns
+#+begin_src
+|...file-contents|
+#+end_src
+The contents of the file/message.
 **** write/sendto (code 2)
 ***** Arguments
 #+begin_src 
-  |2|...filename|0|...?contents|
+  |2|...filename|...?contents|
 #+end_src
 ***** Action
 Writes ~contents~ to the file/socket. Behavior differs between the cases of file and socket:
@@ -78,7 +88,10 @@ Writes ~contents~ to the file/socket. Behavior differs between the cases of file
 - If ~filename~ is a name of the socket-bound file, created by ~connect/accept~ syscall, ~send~ a message containing ~contents~ to it.
 
 It is an undefined behavior if ~contents~ are more than 255 (or whatever cell size there is) bytes long. It is recommended that implementations go with the sane default of cropping the ~contents~ to 255 cells to be consistent with ~read/recv~ syscall behavior.
-
+***** Returns
+#+begin_src
+|0|
+#+end_src
 Leaves empty space instead of all its arguments.
 **** connect/accept (code 3)
 ***** Arguments
@@ -96,6 +109,11 @@ or
 or something else that the implementation could allow, including non-TCP/IP addresses.
 ***** Action
 Creates a socket listening at the specified address&port (in case it's a TCP/IP socket) and binds it to a file ~filename~. The socket type, connection protocol and the decoration of messages sent with ~write/sendto~ and read with ~read/recv~ are implementation-dependent.
+***** Returns
+#+begin_src
+|0|
+#+end_src
+Leaves empty space instead of all its arguments.
 **** time (code 4)
 ***** Arguments
 #+begin_src 
@@ -107,6 +125,15 @@ If at least some of the ~year~, ~month~, ~day~, ~hour~, ~minute~, ~second~ are p
 If none of the time cells are set, ~time~ fills all of those with the current date and time. In case of the time of writing (Thu, 02 December of 2021, 01:55:49 AM), it would write 121, 12, 2, 1, 55, and 49 to the six cells after the syscall code.
 
 In both cases (no time cells and any of those), syscall cell is erased. In case of some cells being set at the time of the call, they are erased too.
+***** Returns
+If called with non-empty arguments, erases all the arguments
+#+begin_src
+|0|
+#+end_src
+otherwise, returns current date in the format
+#+begin_src
+|year|month|day|hour|minute|second|
+#+end_src
 **** rand (code 5)
 ***** Arguments
 #+begin_src 
@@ -116,6 +143,11 @@ In both cases (no time cells and any of those), syscall cell is erased. In case 
 Put the random value into the cell with the syscall code. It is implementation-dependent whether the random value generation is potato random, pseudo-random, almost random, or absolutely random.
 
 Implementations are welcome to have an additional ~seed~ argument to generate the random value from it.
+***** Returns
+#+begin_src
+|rand|
+#+end_src
+Random number.
 *** Other possible syscalls
 Implementations are welcome to introduce new syscalls in case those are considered useful. However, the maximum syscall number should never exceed 32, so that it never interlaces with the area of printable characters and files. Other than that, there are no restrictions on what those syscalls should look like and how they should behave. One can even make their Brainfuck-based OS to be a multi-(user|process|threaded) one, all with the help of additional syscalls.
 
