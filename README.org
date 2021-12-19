@@ -152,5 +152,3 @@ Random number.
 Implementations are welcome to introduce new syscalls in case those are considered useful. However, the maximum syscall number should never exceed 32, so that it never interlaces with the area of printable characters and files. Other than that, there are no restrictions on what those syscalls should look like and how they should behave. One can even make their Brainfuck-based OS to be a multi-(user|process|threaded) one, all with the help of additional syscalls.
 
 Implementations can add special files (akin to UNIX =/dev/null= and =/dev/random=) that will behave in special ways when read/written to. Those, however, should not replace syscalls like ~time~ and ~rand~, they can only add to those.
-* References
-[The main reference BFOSIX has.](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
