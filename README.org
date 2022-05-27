@@ -1,4 +1,4 @@
-#+TITLE:BFOSIX -- (Mostly Informal) Brainfuck Operating System Specification
+#+TITLE:BFOSIX v2 -- (Mostly Informal) Brainfuck Operating System Specification
 
 BFOSIX is a single-(user|process|thread) Brainfuck-based operating system specification. Akin to POSIX, it defines a basic set of primitives (syscalls) for things that a programming language such as Brainfuck needs to rely on the Operating System in.
 
@@ -50,74 +50,51 @@ Now to syscalls.
 *** Syscalls
 **** exit (code 0)
 ***** Action
-Stops executing current Brainfuck process. Returns to the parent process. If there's no parent process, shuts BFOSIX system down.
+Stops executing current Brainfuck script/process. Returns to the parent script/process. If there's no parent process, shuts BFOSIX system down.
 ***** Arguments
 #+begin_src 
-|0|  
+|0|...?args|
 #+end_src
-No arguments except the code. Implementations are welcome to add ~errno~ and other UNIX-y ~exit~ niceties.
+No arguments. Implementations are welcome to add ~errno~ and other UNIX-y ~exit~ niceties as implementation-dependent ~args~.
 ***** Returns
 #+begin_src
 |0|
 #+end_src
 Nothing, leaves zero (syscall code) intact.
-**** read/recv (code 1)
+**** read/recv/write/sendto (code 1)
 ***** Arguments
 #+begin_src 
-  |1|...filename|?start(0)|?end(255)|
+  |1|...filename|0|...?flags|
 #+end_src
-***** Action
-Reads bytes from ~start~ index to the ~end~ index from the file/socket and puts them in memory, starting from the cell pointer is at, thus rewriting the syscall code ~filename~ and other args. Behavior differs between the cases of file and socket:
-- If ~filename~ is a name of the file, simply read a range of characters (from ~start~ to ~end~) from it.
-- If ~filename~ is a name of the socket-bound file, created by ~connect/accept~ syscall, listen on it and store the ~end~ to ~start~ message bytes to the memory.
-
-It is an undefined behavior if messages/files are more than 255 (or whatever cell size there is) bytes long. It is recommended that implementations go with the sane default of simply not reading beyond the cell limits, thus pretending that all the files are 256 bytes long at most.
-***** Returns
-#+begin_src
-|...file-contents|
-#+end_src
-The contents of the file/message.
-**** write/sendto (code 2)
-***** Arguments
-#+begin_src 
-  |2|...filename|...?contents|
-#+end_src
-***** Action
-Writes ~contents~ to the file/socket. Behavior differs between the cases of file and socket:
-- If ~filename~ is a name of the file, simply write ~contents~ to it.
-- If ~filename~ is a name of the socket-bound file, created by ~connect/accept~ syscall, ~send~ a message containing ~contents~ to it.
-
-It is an undefined behavior if ~contents~ are more than 255 (or whatever cell size there is) bytes long. It is recommended that implementations go with the sane default of cropping the ~contents~ to 255 cells to be consistent with ~read/recv~ syscall behavior.
-***** Returns
-#+begin_src
-|0|
-#+end_src
-Leaves empty space instead of all its arguments.
-**** connect/accept (code 3)
-***** Arguments
-#+begin_src 
-  |5|...filename|0|...?address|0|?port|
-#+end_src
-where ~address~ is either
+where ~filename~ is either a string of text naming the file, an IPv4 address like
 #+begin_src 
   |ipv4one(0)|ipv4two(0)|ipv4three(0)|ipv4four(0)|
 #+end_src
-or
+or IPv6 address like
 #+begin_src 
   |ipv6one(0)|ipv6two(0)|ipv6three(0)|ipv6four(0)|ipv6five(0)|ipv6six(0)|ipv6seven(0)|...|ipv6sixteen(0)|
 #+end_src
 or something else that the implementation could allow, including non-TCP/IP addresses.
 ***** Action
-Creates a socket listening at the specified address&port (in case it's a TCP/IP socket) and binds it to a file ~filename~. The socket type, connection protocol and the decoration of messages sent with ~write/sendto~ and read with ~read/recv~ are implementation-dependent.
+Sets the input/output streams of Brainfuck program (the one used by ~,~ and ~.~) to the file/socket named ~filename~.
+Behavior differs between the cases of file and socket:
+- If filename if a null byte, set input/output streams to the default (~stdin~ / ~stdout~) value.
+- If ~filename~ is a name of the file, set the stream to the stream of its contents. When the file end, ~,~ will store the null byte into the memory.
+- If ~filename~ is an IP address, connect and listen on it and fetch characters with ~,~ one by one. If the message is over, ~,~ reads a null byte. After this, ~,~ can be invoked again to start listening and reading the next message.
+  - Using ~.~ on an IP address or other network address should stark a new packet terminated by the null byte.
+The ~flags~ are implementation-dependent, and may be set to (non-exhaustive list):
+- Set input and output separately.
+- Allow overwriting/appending to the file.
+- Setting the offset into the file.
 ***** Returns
 #+begin_src
 |0|
 #+end_src
-Leaves empty space instead of all its arguments.
-**** time (code 4)
+Leaves memory empty.
+**** time (code 2)
 ***** Arguments
 #+begin_src 
-  |4|?year(0 i.e. 1900)|?month(1 i.e. Jan)|?day(1)|?hour(0 i.e. midnight)|?minute(0)|?second(0)|
+  |2|?year(0 i.e. 1900)|?month(1 i.e. Jan)|?day(1)|?hour(0 i.e. midnight)|?minute(0)|?second(0)|
 #+end_src
 ***** Action
 If at least some of the ~year~, ~month~, ~day~, ~hour~, ~minute~, ~second~ are present, set the system time to the respective values and defaults. The year starts counting from 1900, so 173 in the ~year~ cell would be 2073, while 255 (the maximum possible cell value for 8-bit implementations) caps the existence of BFOSIX to 2155. Hopefully we'll get a new specification by then :)
@@ -132,17 +109,16 @@ If called with non-empty arguments, erases all the arguments
 #+end_src
 otherwise, returns current date in the format
 #+begin_src
-|year|month|day|hour|minute|second|
+|2|year|month|day|hour|minute|second|
 #+end_src
-**** rand (code 5)
+**** rand (code 3)
 ***** Arguments
 #+begin_src 
-  |5|
+  |3|...?seed|
 #+end_src
+No arguments. Implementations are welcome to have an additional ~seed~ argument to generate the random value from it.
 ***** Action
 Put the random value into the cell with the syscall code. It is implementation-dependent whether the random value generation is potato random, pseudo-random, almost random, or absolutely random.
-
-Implementations are welcome to have an additional ~seed~ argument to generate the random value from it.
 ***** Returns
 #+begin_src
 |rand|
