@@ -2,18 +2,18 @@
 
 BFOSIX is a single-(user|process|thread) Brainfuck-based operating system specification. Akin to POSIX, it defines a basic set of primitives (syscalls) for things that a programming language such as Brainfuck needs to rely on the Operating System in.
 
-* Syscalls and =$=
-=$= is the only command that BFOSIX adds to Brainfuck command set. This is to ensure a clean separation between the programming language and Operating System. Brainfuck should stay minimal, even if used as a full-fledged OS-aware language. =$= has two uses:
+* Syscalls and ~$~
+~$~ is the only command that BFOSIX adds to Brainfuck command set. This is to ensure a clean separation between the programming language and Operating System. Brainfuck should stay minimal, even if used as a full-fledged OS-aware language. ~$~ has two uses:
 - As a syscall-invoking command.
-- As =exec=-like command to run the code from some file.
+- As ~exec~-like command to run the code from some file.
 
 Boring things first.
 ** $ as a script execution
-If you lay out a file name in memory and invoke =$= at the first cell of the name, then =$= will
+If you lay out a file name in memory and invoke ~$~ at the first cell of the name, then ~$~ will
 - Leave the memory and program pointer the same.
 - Immediately execute the Brainfuck code (script thereof) in the chosen file.
-- The memory that the script have altered is left as the script left it after terminating (either with =exit= or simply reaching the end of the script).
-- Once script finishes running, return to the code that invoked =$= and continue running it.
+- The memory that the script have altered is left as the script left it after terminating (either with ~exit~ or simply reaching the end of the script).
+- Once script finishes running, return to the code that invoked ~$~ and continue running it.
 
 Example of the code:
 file called "hello":
@@ -27,24 +27,24 @@ main program:
 
 In this example, the main program invokes the script from the file named "hello" (essentially a "Hello World!"-printing program from [[https://en.wikipedia.org/wiki/Brainfuck#Hello_World!][Wikipedia]]), outputs a newline and loops. While not immediately useful (unless you want to clutter your terminal), it shows the point -- you can now modularize your programs and invoke the code from other files, sharing the memory between them.
 
-Because of this memory sharing, the =exec=-like usage of =$= is significantly different from the POSIX =exec=: it has no arguments. Thus, scripts invoked by =$= should rely of what is in the memory at the moment they are ran. More so: scripts can freely access the memory of the processes that called them. While not exactly a good thing security-wise, this is a feature that allows scripts to look up the "environment" they are running in.
+Because of this memory sharing, the ~exec~-like usage of ~$~ is significantly different from the POSIX ~exec~: it has no arguments. Thus, scripts invoked by ~$~ should rely of what is in the memory at the moment they are ran. More so: scripts can freely access the memory of the processes that called them. While not exactly a good thing security-wise, this is a feature that allows scripts to look up the "environment" they are running in.
 ** $ as a syscall invokation
-In case the cell that =$= is invoked on is a cell with the value of less than 32, the =$= call is considered to be a syscall. The number of syscalls to have is implementation-dependent. but all the BFOSIX-compliant systems should have at least the syscalls listed below.
+In case the cell that ~$~ is invoked on is a cell with the value of less than 32, the ~$~ call is considered to be a syscall. The number of syscalls to have is implementation-dependent. but all the BFOSIX-compliant systems should have at least the syscalls listed below.
 
 *** Note on the notation
 For all the syscalls, a certain notation is used to show memory contents that they require. The rules of this notation are:
-- =|0|= is a cell. In this case, a cell with a value of zero.
-- =|...|= is a sequence of cells that I was too lazy to write in full. Imply ranges or whatever makes sense here.
-- =|value|= is one value in the cell.
-- =|0|1|2|= is a sequence of cells. In this case, these cells have 0, 1, and 2 in them.
-- =|...values|= is a sequence of values in a null-terminated sequence of cells.
-- =|?value|= is an optional value cell. "Optional" means that syscall will work even without it, so one can omit setting such a cell from the syscall setup. If there are several optional cells one after the other, it means that they all can be omitted. Some of them can be omitted too, starting from the rightmost one.
-- =|...?values|= is an optional null-terminated sequence of cells with certain values in them.
-- =|?value(x)|= is an optional value that has a default in case it wasn't provided.
-  - =|...?filename("a.out")|= means that ~filename~ is an optional string defaulting to "a.out".
+- ~|0|~ is a cell. In this case, a cell with a value of zero.
+- ~|...|~ is a sequence of cells that I was too lazy to write in full. Imply ranges or whatever makes sense here.
+- ~|value|~ is one value in the cell.
+- ~|0|1|2|~ is a sequence of cells. In this case, these cells have 0, 1, and 2 in them.
+- ~|...values|~ is a sequence of values in a null-terminated sequence of cells.
+- ~|?value|~ is an optional value cell. "Optional" means that syscall will work even without it, so one can omit setting such a cell from the syscall setup. If there are several optional cells one after the other, it means that they all can be omitted. Some of them can be omitted too, starting from the rightmost one.
+- ~|...?values|~ is an optional null-terminated sequence of cells with certain values in them.
+- ~|?value(x)|~ is an optional value that has a default in case it wasn't provided.
+  - ~|...?filename("a.out")|~ means that ~filename~ is an optional string defaulting to "a.out".
 
 Examples:
-=|a|0|b|?c|...?d|= means "a one-cell value =a= followed by the zero cell and cell with value =b=. After those, there can be a cell with value =c=, and, after it, there can be a null-terminated sequence =d.="
+~|a|0|b|?c|...?d|~ means "a one-cell value ~a~ followed by the zero cell and cell with value ~b~. After those, there can be a cell with value ~c~, and, after it, there can be a null-terminated sequence ~d~."
 
 Now to syscalls.
 *** Syscalls
